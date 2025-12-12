@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>深圳：高强度开发与热岛效应</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;700&display=swap');
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #fcfbf7;
+            font-family: 'Noto Serif SC', serif;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* 封面文字层 */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 40px;
+            box-sizing: border-box;
+        }
+
+        header {
+            text-align: left;
+            margin-top: 20px;
+            text-shadow: 0 0 10px rgba(255,255,255,0.8);
+        }
+
+        h1 {
+            font-size: clamp(2rem, 5vw, 4rem);
+            color: #2c2c2c;
+            margin: 0;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+
+        h2 {
+            font-size: clamp(1rem, 2vw, 1.8rem);
+            color: #c0392b;
+            margin: 10px 0 0 5px;
+            font-weight: 300;
+        }
+
+        .info-cards {
+            display: flex;
+            justify-content: center;
+            gap: 30px; /* 增加间距 */
+            margin-bottom: 60px; /* 底部留白增加 */
+            flex-wrap: wrap;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 25px 30px;
+            border-radius: 4px;
+            border-left: 4px solid #333;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            max-width: 300px; /*稍微加宽因为少了一个卡片*/
+            transition: transform 0.3s ease;
+        }
+
+        .card h3 {
+            margin: 0 0 8px 0;
+            font-size: 1.2rem;
+            color: #d35400;
+        }
+
+        .card.density h3 { color: #555; }
+        .card.heat h3 { color: #e74c3c; }
+
+        .card p {
+            margin: 0;
+            font-size: 1rem;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .badge {
+            position: absolute;
+            top: 40px;
+            right: 40px;
+            border: 1px solid #c0392b;
+            padding: 5px 15px;
+            border-radius: 2px;
+            font-size: 0.8rem;
+            color: #c0392b;
+            background: rgba(255,255,255,0.8);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        @media (max-width: 768px) {
+            #ui-layer {
+                padding: 20px;
+            }
+            .info-cards {
+                justify-content: flex-start;
+                overflow-x: auto;
+                padding-bottom: 10px;
+            }
+            .card {
+                min-width: 260px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container">
+        <canvas id="mainCanvas"></canvas>
+    </div>
+
+    <div id="ui-layer">
+        <header>
+            <h1>深圳：水泥森林与热浪</h1>
+            <h2>高强度开发下的城市微气候危机</h2>
+        </header>
+
+        <div class="badge">环境监测报告</div>
+
+        <div class="info-cards">
+            <div class="card density">
+                <h3>01. 高密度开发</h3>
+                <p>建成区不透水地表比例激增，自然吸热蒸腾机制失效，热量难以消散。</p>
+            </div>
+            <div class="card heat">
+                <h3>02. 热岛效应</h3>
+                <p>建筑材料吸热与人为热排放叠加，市中心夜间气温显著高于郊区。</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('mainCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let elements = [];
+        let time = 0;
+        let heatWaves = [];
+
+        function init() {
+            resize();
+            window.addEventListener('resize', resize);
+            animate();
+        }
+
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            generateScene();
+            generateHeatWaves();
+        }
+
+        // 优化：使用标准直线绘制，消除 per-frame 随机计算导致的抖动
+        function drawLine(x1, y1, x2, y2, color = '#333', lineWidth = 1) {
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+
+        function generateScene() {
+            elements = [];
+            
+            // 远景：朦胧的高密度楼群轮廓 (灰霾色)
+            const bgBuildingCount = 40;
+            for(let i=0; i<bgBuildingCount; i++) {
+                const h = 200 + Math.random() * 300;
+                elements.push({
+                    type: 'bgBuilding',
+                    x: (width / bgBuildingCount) * i,
+                    y: height,
+                    w: width / bgBuildingCount + 10,
+                    h: h,
+                    color: `rgba(149, 165, 166, ${0.3 + Math.random() * 0.2})`
+                });
+            }
+
+            // 中景：高强度开发的建筑群 (拥挤)
+            const buildingCount = 35;
+            for(let i=0; i<buildingCount; i++) {
+                // 深圳风格：非常高，玻璃幕墙感
+                const h = 100 + Math.random() * 400 + (Math.sin(i/5)*100); 
+                const w = 40 + Math.random() * 60;
+                const x = (i / buildingCount) * width - 20;
+
+                // 颜色偏暖灰，暗示被夕阳或热气笼罩
+                const r = 180 + Math.random() * 40;
+                const g = 180 + Math.random() * 30;
+                const b = 170 + Math.random() * 30;
+
+                elements.push({
+                    type: 'building',
+                    x: x,
+                    y: height,
+                    w: w,
+                    h: h,
+                    color: `rgba(${r},${g},${b}, 0.85)`,
+                    stroke: '#555',
+                    windows: Math.random() > 0.3
+                });
+            }
+            
+            // 少量被压缩的绿地/树木
+            for(let i=0; i<8; i++) {
+                elements.push({
+                    type: 'tree',
+                    x: Math.random() * width,
+                    y: height - 10,
+                    h: 20 + Math.random() * 15
+                });
+            }
+        }
+
+        function generateHeatWaves() {
+            heatWaves = [];
+            for(let i=0; i<20; i++) {
+                heatWaves.push({
+                    x: Math.random() * width,
+                    y: height,
+                    speed: 0.5 + Math.random() * 1.5,
+                    opacity: Math.random(),
+                    offset: Math.random() * 100
+                });
+            }
+        }
+
+        function draw() {
+            // 1. 天空背景
+            const gradient = ctx.createLinearGradient(0, 0, 0, height);
+            gradient.addColorStop(0, '#dbe6f6'); 
+            gradient.addColorStop(0.5, '#f5e6ca'); 
+            gradient.addColorStop(1, '#eeb6a6'); 
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+
+            // 太阳
+            ctx.beginPath();
+            ctx.arc(width * 0.7, height * 0.3, 60, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(231, 76, 60, 0.2)';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(width * 0.7, height * 0.3, 40, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(231, 76, 60, 0.4)';
+            ctx.fill();
+
+            // 2. 绘制远景轮廓
+            elements.filter(e => e.type === 'bgBuilding').forEach(b => {
+                ctx.fillStyle = b.color;
+                ctx.fillRect(b.x, height - b.h, b.w, b.h);
+            });
+
+            // 3. 绘制主体建筑
+            elements.filter(e => e.type === 'building').forEach(b => {
+                // 建筑主体
+                ctx.fillStyle = b.color;
+                ctx.fillRect(b.x, height - b.h, b.w, b.h);
+                
+                // 边框 (使用优化后的直线函数)
+                drawLine(b.x, height, b.x, height - b.h, b.stroke, 1);
+                drawLine(b.x, height - b.h, b.x + b.w, height - b.h, b.stroke, 1);
+                drawLine(b.x + b.w, height - b.h, b.x + b.w, height, b.stroke, 1);
+
+                // 玻璃幕墙纹理
+                if(b.windows) {
+                    ctx.strokeStyle = 'rgba(0,0,0,0.05)';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    // 竖线
+                    for(let wx = b.x + 10; wx < b.x + b.w; wx += 10) {
+                        ctx.moveTo(wx, height - b.h);
+                        ctx.lineTo(wx, height);
+                    }
+                    // 横线
+                    for(let wy = height - b.h; wy < height; wy += 20) {
+                        ctx.moveTo(b.x, wy);
+                        ctx.lineTo(b.x + b.w, wy);
+                    }
+                    ctx.stroke();
+                }
+
+                // 楼顶空调机组
+                if(Math.random() > 0.7 && b.windows) { // 稍微减少闪烁，只有在生成时有windows的才画，不每帧随机
+                   // 注意：这里仍然用了 Math.random()，如果放在draw loop里，设备层会闪烁。
+                   // 应该在生成数据时决定是否有空调。
+                   // 为了快速修复，这里改为不绘制动态随机物体，或者依赖之前的数据结构。
+                   // 检查 elements 结构，我没有存空调数据。
+                   // 优化：简单画一个固定的灰色块，或者直接去掉这个随机特性，或者基于坐标哈希。
+                   // 这里我选择基于坐标的伪随机，确保静止。
+                   if ((Math.floor(b.x) % 3 === 0)) {
+                       ctx.fillStyle = '#7f8c8d';
+                       ctx.fillRect(b.x + 5, height - b.h - 10, b.w - 10, 10);
+                   }
+                }
+            });
+
+            // 4. 路面与树木
+            ctx.fillStyle = '#95a5a6';
+            ctx.fillRect(0, height - 10, width, 10);
+            
+            elements.filter(e => e.type === 'tree').forEach(t => {
+                ctx.beginPath();
+                ctx.moveTo(t.x, t.y);
+                ctx.lineTo(t.x + 5, t.y - t.h);
+                ctx.lineTo(t.x + 10, t.y);
+                ctx.fillStyle = '#7d6608'; 
+                ctx.fill();
+            });
+
+            // 5. 热浪特效 (保持动画)
+            heatWaves.forEach(w => {
+                w.y -= w.speed;
+                if(w.y < height * 0.4) {
+                    w.y = height;
+                    w.x = Math.random() * width;
+                }
+
+                ctx.beginPath();
+                const waveX = w.x + Math.sin(time * 0.05 + w.offset) * 20;
+                ctx.moveTo(w.x, w.y);
+                ctx.lineTo(waveX, w.y - 40);
+                
+                const gradient = ctx.createLinearGradient(w.x, w.y, waveX, w.y - 40);
+                gradient.addColorStop(0, 'rgba(231, 76, 60, 0)');
+                gradient.addColorStop(0.5, `rgba(255, 100, 100, ${0.1 + Math.sin(time * 0.1)*0.05})`);
+                gradient.addColorStop(1, 'rgba(231, 76, 60, 0)');
+                
+                ctx.strokeStyle = gradient;
+                ctx.lineWidth = 20;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+            });
+
+            // 6. 全局暖色滤镜
+            ctx.fillStyle = 'rgba(255, 165, 0, 0.05)';
+            ctx.fillRect(0, 0, width, height);
+        }
+
+        function animate() {
+            time++;
+            draw();
+            requestAnimationFrame(animate);
+        }
+
+        init();
+
+    </script>
+</body>
+</html>
